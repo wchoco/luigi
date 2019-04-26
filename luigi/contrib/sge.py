@@ -277,10 +277,10 @@ class SGEJobTask(luigi.Task):
             if self.__module__ == '__main__':
                 d = pickle.dumps(self)
                 module_name = os.path.basename(sys.argv[0]).rsplit('.', 1)[0]
-                d = d.replace('(c__main__', "(c" + module_name)
-                open(self.job_file, "w").write(d)
+                d = d.replace(b'c__main__', bytes("c" + module_name, "UTF-8"))
+                open(self.job_file, "wb").write(d)
             else:
-                pickle.dump(self, open(self.job_file, "w"))
+                pickle.dump(self, open(self.job_file, "wb"))
 
     def _run_job(self):
 
@@ -301,7 +301,7 @@ class SGEJobTask(luigi.Task):
         logger.debug('qsub command: \n' + submit_cmd)
 
         # Submit the job and grab job ID
-        output = subprocess.check_output(submit_cmd, shell=True)
+        output = subprocess.check_output(submit_cmd, shell=True).decode()
         self.job_id = _parse_qsub_job_id(output)
         logger.debug("Submitted job to qsub with response:\n" + output)
 
@@ -319,7 +319,7 @@ class SGEJobTask(luigi.Task):
 
             # See what the job's up to
             # ASSUMPTION
-            qstat_out = subprocess.check_output(['qstat'])
+            qstat_out = subprocess.check_output(['qstat']).decode()
             sge_status = _parse_qstat_state(qstat_out, self.job_id)
             if sge_status == 'r':
                 logger.info('Job is running...')
